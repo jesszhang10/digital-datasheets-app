@@ -1,43 +1,121 @@
-// Modules to control application life and create native browser window
-const {app, BrowserWindow} = require('electron')
-const path = require('path')
+// Modules
+const {app, BrowserWindow, Menu, MenuItem} = require('electron')
+const windowStateKeeper = require('electron-window-state')
+// Keep a global reference of the window object, if you don't, the window will
+// be closed automatically when the JavaScript object is garbage collected.
+let mainWindow
 
+// Create a new BrowserWindow when `app` is ready
 function createWindow () {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+  // Win state keeper
+
+  // let state = windowStateKeeper({
+  //   defaultWidth: 1000, defaultHeight: 800
+  // })
+
+  mainWindow = new BrowserWindow({
+    // x: state.x, y: state.y,
+    // width: state.width, height: state.height,
+    // minWidth: 350, maxWidth: 1200, minHeight:300,
+    width: 1000, height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      worldSafeExecuteJavaScript: true,
+      nodeIntegration: true,
+      devTools: true
     }
   })
 
-  // and load the index.html of the app.
-  mainWindow.loadFile('index.html')
+  // Load index.html into the new BrowserWindow
+  mainWindow.loadFile('renderer/main.html')
 
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  // // Manage new window state
+  // state.manage(mainWindow)
+
+  // Open DevTools - Remove for PRODUCTION!
+  mainWindow.webContents.openDevTools();
+
+  Menu.setApplicationMenu(mainMenu)
+  
+  // Listen for window being closed
+  mainWindow.on('closed',  () => {
+    mainWindow = null
+  })
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
-  createWindow()
+let mainMenu = new Menu()
 
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+let fileMenu = new MenuItem(
+  { 
+    label: 'File',
+    submenu: [
+      // add shortcuts later
+      {label: 'Open File'},
+      {label: 'Open Folder'},
+      {label: 'Open Recent'},
+      {label: 'Save'},
+      {label: 'Save As'},
+      {label: 'Close Folder'},
+      {label: 'Close Editor'},
+    ]
+  }
+)
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', function () {
+let editMenu = new MenuItem(
+  { 
+    label: 'Edit',
+    submenu: [
+      // add shortcuts later
+      {label: 'Undo'}, // might not be necessary
+      {label: 'Redo'},
+      {label: 'Cut'},
+      {label: 'Copy'},
+      {label: 'Paste'},
+      {label: 'Find'}
+    ]
+  }
+)
+
+let viewMenu = new MenuItem(
+  { 
+    label: 'View',
+    submenu: [
+      // add shortcuts later
+      {label: 'Search File'},
+      {label: 'Expand Editor'},
+      {label: 'Expand Terminal'},
+      {label: 'Close File Panel'}
+    ]
+  }
+)
+
+let terminalMenu = new MenuItem(
+  { 
+    label: 'Terminal',
+    submenu: [
+      // add shortcuts later
+      {label: 'New Terminal'},
+      {label: 'Split Terminal'},
+      {label: 'Run Task'}
+    ]
+  }
+)
+
+mainMenu.append(fileMenu)
+mainMenu.append(editMenu)
+mainMenu.append(viewMenu)
+mainMenu.append(terminalMenu)
+
+// Electron `app` is ready
+app.on('ready', createWindow)
+
+// Quit when all windows are closed - (Not macOS - Darwin)
+app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+// When app icon is clicked and app is running, (macOS) recreate the BrowserWindow
+app.on('activate', () => {
+  if (mainWindow === null) createWindow()
+})
+
+process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
